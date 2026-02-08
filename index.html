@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手書きメモパッド</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #ffeef8 0%, #e6f3ff 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            max-width: 1100px;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #fdf7fb;
+            border-radius: 15px;
+        }
+
+        .tool-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tool-label {
+            font-size: 14px;
+            color: #888;
+            font-weight: 500;
+        }
+
+        .color-btn {
+            width: 40px;
+            height: 40px;
+            border: 3px solid transparent;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .color-btn.active {
+            border-color: #ff9ed8;
+            box-shadow: 0 0 0 3px rgba(255, 158, 216, 0.2);
+        }
+
+        .color-picker-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .color-picker-btn {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #ddd;
+            border-radius: 50%;
+            cursor: pointer;
+            background: linear-gradient(135deg, #ff0000 0%, #ffff00 25%, #00ff00 50%, #00ffff 75%, #0000ff 100%);
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .color-picker-btn:hover {
+            transform: scale(1.1);
+            border-color: #ff9ed8;
+        }
+
+        .color-picker-input {
+            position: absolute;
+            opacity: 0;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+        }
+
+        .size-slider {
+            width: 150px;
+            height: 6px;
+            border-radius: 5px;
+            background: linear-gradient(to right, #ffd1e8, #ff9ed8);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .size-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ff9ed8;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+        }
+
+        .size-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: #ff7ac1;
+        }
+
+        .size-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ff9ed8;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+        }
+
+        .size-slider::-moz-range-thumb:hover {
+            transform: scale(1.2);
+            background: #ff7ac1;
+        }
+
+        .size-value {
+            min-width: 40px;
+            font-size: 14px;
+            color: #ff9ed8;
+            font-weight: 600;
+        }
+
+        .action-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .eraser-btn {
+            background: #ffe8f0;
+            color: #ff6b9d;
+        }
+
+        .eraser-btn:hover, .eraser-btn.active {
+            background: #ff6b9d;
+            color: white;
+        }
+
+        .undo-btn, .redo-btn {
+            background: #e8f0ff;
+            color: #6b9dff;
+        }
+
+        .undo-btn:hover, .redo-btn:hover {
+            background: #6b9dff;
+            color: white;
+        }
+
+        .clear-btn {
+            background: #ffebe8;
+            color: #ff6b6b;
+        }
+
+        .clear-btn:hover {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .download-btn {
+            background: #e8ffe8;
+            color: #66cc66;
+        }
+
+        .download-btn:hover {
+            background: #66cc66;
+            color: white;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            display: inline-block;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+
+        #backgroundCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        #drawingCanvas {
+            position: relative;
+            cursor: crosshair;
+        }
+
+        #drawingCanvas.eraser-mode {
+            cursor: cell;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="toolbar">
+            <div class="tool-section">
+                <span class="tool-label">ペンの色:</span>
+                <button class="color-btn active" style="background: #ffb3d9;" data-color="#ffb3d9"></button>
+                <button class="color-btn" style="background: #d4b5f7;" data-color="#d4b5f7"></button>
+                <button class="color-btn" style="background: #b3f0d9;" data-color="#b3f0d9"></button>
+                <button class="color-btn" style="background: #ffc9b3;" data-color="#ffc9b3"></button>
+                <button class="color-btn" style="background: #b3d9ff;" data-color="#b3d9ff"></button>
+                <div class="color-picker-wrapper">
+                    <div class="color-picker-btn">
+                        <input type="color" class="color-picker-input" value="#ffb3d9">
+                    </div>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <span class="tool-label">太さ:</span>
+                <input type="range" class="size-slider" min="1" max="20" value="2" step="1">
+                <span class="size-value">2px</span>
+            </div>
+
+            <div class="tool-section">
+                <button class="action-btn eraser-btn">🧹 消しゴム</button>
+                <button class="action-btn undo-btn">↶ 戻る</button>
+                <button class="action-btn redo-btn">↷ 進む</button>
+                <button class="action-btn clear-btn">🗑️ 全消去</button>
+                <button class="action-btn download-btn">💾 ダウンロード</button>
+            </div>
+        </div>
+
+        <div class="canvas-wrapper">
+            <canvas id="backgroundCanvas" width="1024" height="768"></canvas>
+            <canvas id="drawingCanvas" width="1024" height="768"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const backgroundCanvas = document.getElementById('backgroundCanvas');
+        const drawingCanvas = document.getElementById('drawingCanvas');
+        const bgCtx = backgroundCanvas.getContext('2d');
+        const ctx = drawingCanvas.getContext('2d', { willReadFrequently: true });
+        
+        let isDrawing = false;
+        let currentColor = '#ffb3d9';
+        let currentSize = 2;
+        let isEraser = false;
+        let history = [];
+        let historyStep = -1;
+        
+        // 背景(方眼紙)を描画
+        function drawBackground() {
+            bgCtx.fillStyle = 'white';
+            bgCtx.fillRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
+            
+            const gridSize = 20;
+            bgCtx.strokeStyle = '#f0f0f0';
+            bgCtx.lineWidth = 1;
+            
+            for (let x = 0; x <= backgroundCanvas.width; x += gridSize) {
+                bgCtx.beginPath();
+                bgCtx.moveTo(x, 0);
+                bgCtx.lineTo(x, backgroundCanvas.height);
+                bgCtx.stroke();
+            }
+            
+            for (let y = 0; y <= backgroundCanvas.height; y += gridSize) {
+                bgCtx.beginPath();
+                bgCtx.moveTo(0, y);
+                bgCtx.lineTo(backgroundCanvas.width, y);
+                bgCtx.stroke();
+            }
+        }
+        
+        // 初期化
+        drawBackground();
+        saveState();
+        
+        // ローカルストレージから復元
+        const savedCanvas = localStorage.getItem('handwritingCanvas');
+        if (savedCanvas) {
+            const img = new Image();
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0);
+                saveState();
+            };
+            img.src = savedCanvas;
+        }
+        
+        function saveState() {
+            historyStep++;
+            if (historyStep < history.length) {
+                history.length = historyStep;
+            }
+            history.push(drawingCanvas.toDataURL());
+            localStorage.setItem('handwritingCanvas', drawingCanvas.toDataURL());
+        }
+        
+        function undo() {
+            if (historyStep > 0) {
+                historyStep--;
+                const img = new Image();
+                img.onload = function() {
+                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = history[historyStep];
+            }
+        }
+        
+        function redo() {
+            if (historyStep < history.length - 1) {
+                historyStep++;
+                const img = new Image();
+                img.onload = function() {
+                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = history[historyStep];
+            }
+        }
+        
+        function clearCanvas() {
+            ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+            history = [];
+            historyStep = -1;
+            saveState();
+        }
+        
+        function getPos(e) {
+            const rect = drawingCanvas.getBoundingClientRect();
+            const scaleX = drawingCanvas.width / rect.width;
+            const scaleY = drawingCanvas.height / rect.height;
+            
+            if (e.touches) {
+                return {
+                    x: (e.touches[0].clientX - rect.left) * scaleX,
+                    y: (e.touches[0].clientY - rect.top) * scaleY
+                };
+            }
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY
+            };
+        }
+        
+        function startDrawing(e) {
+            isDrawing = true;
+            const pos = getPos(e);
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+        }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            
+            const pos = getPos(e);
+            
+            if (isEraser) {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.lineWidth = currentSize * 3;
+            } else {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = currentColor;
+                ctx.lineWidth = currentSize;
+            }
+            
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+        }
+        
+        function stopDrawing() {
+            if (isDrawing) {
+                isDrawing = false;
+                ctx.globalCompositeOperation = 'source-over';
+                saveState();
+            }
+        }
+        
+        // イベントリスナー
+        drawingCanvas.addEventListener('mousedown', startDrawing);
+        drawingCanvas.addEventListener('mousemove', draw);
+        drawingCanvas.addEventListener('mouseup', stopDrawing);
+        drawingCanvas.addEventListener('mouseout', stopDrawing);
+        
+        drawingCanvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            startDrawing(e);
+        });
+        drawingCanvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            draw(e);
+        });
+        drawingCanvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            stopDrawing();
+        });
+        
+        // カラーボタン
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentColor = btn.dataset.color;
+                isEraser = false;
+                drawingCanvas.classList.remove('eraser-mode');
+                document.querySelector('.eraser-btn').classList.remove('active');
+            });
+        });
+        
+        // カラーピッカー
+        const colorPicker = document.querySelector('.color-picker-input');
+        const colorPickerBtn = document.querySelector('.color-picker-btn');
+        
+        colorPicker.addEventListener('change', (e) => {
+            currentColor = e.target.value;
+            colorPickerBtn.style.background = currentColor;
+            document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+            isEraser = false;
+            drawingCanvas.classList.remove('eraser-mode');
+            document.querySelector('.eraser-btn').classList.remove('active');
+        });
+        
+        // 太さスライダー
+        const sizeSlider = document.querySelector('.size-slider');
+        const sizeValue = document.querySelector('.size-value');
+        
+        sizeSlider.addEventListener('input', (e) => {
+            currentSize = parseInt(e.target.value);
+            sizeValue.textContent = currentSize + 'px';
+        });
+        
+        // 消しゴムボタン
+        document.querySelector('.eraser-btn').addEventListener('click', function() {
+            isEraser = !isEraser;
+            this.classList.toggle('active');
+            if (isEraser) {
+                drawingCanvas.classList.add('eraser-mode');
+            } else {
+                drawingCanvas.classList.remove('eraser-mode');
+            }
+        });
+        
+        // 戻る/進むボタン
+        document.querySelector('.undo-btn').addEventListener('click', undo);
+        document.querySelector('.redo-btn').addEventListener('click', redo);
+        
+        // 全消去ボタン
+        document.querySelector('.clear-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (confirm('本当に全て消去しますか?')) {
+                clearCanvas();
+            }
+        });
+        
+        // ダウンロードボタン
+        document.querySelector('.download-btn').addEventListener('click', () => {
+            // 背景と描画を合成
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = drawingCanvas.width;
+            tempCanvas.height = drawingCanvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            tempCtx.drawImage(backgroundCanvas, 0, 0);
+            tempCtx.drawImage(drawingCanvas, 0, 0);
+            
+            const link = document.createElement('a');
+            link.download = `handwriting-${Date.now()}.png`;
+            link.href = tempCanvas.toDataURL();
+            link.click();
+        });
+    </script>
+</body>
+</html>
